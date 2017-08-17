@@ -181,8 +181,10 @@ public class Game{
 		}
 	}
 
-	public static class GridMap extends JPanel{
+	public static class GridMap extends JPanel implements KeyListener{
 		//objects
+
+		public static boolean move = true;
 
 		public GridMap(){
 			getIMG();
@@ -207,6 +209,8 @@ public class Game{
   			//make characters
   			setVisible(true);
   			p1.randomPlace();
+
+  			addKeyListener(this);
 		}
 
 		//images
@@ -323,6 +327,34 @@ public class Game{
 		public void make(int obj, int x, int y){
 		  if((x >= 0 && x < map_size) && (y >= 0 && y < map_size) && terrain_map[y][x] == 0)
 		    terrain_map[y][x] = obj;
+		}
+
+
+		//key movement
+		@Override
+		public void keyPressed(KeyEvent e){
+			int code = e.getKeyCode();
+			if(move){
+				if(code == 40){
+					p1.walk("south");
+				}else if(code == 38){
+					p1.walk("north");
+				}else if(code == 37){
+					p1.walk("west");
+				}else if(code == 39){
+					p1.walk("east");
+				}
+				this.repaint();
+				move = false;
+			}
+
+		}
+		@Override
+		public void keyTyped(KeyEvent e){
+		}
+		@Override
+		public void keyReleased(KeyEvent e){
+			move = true;
 		}
 	}
 
@@ -494,6 +526,7 @@ public class Game{
 
 		//grid.setLayout(new FlowLayout(FlowLayout.CENTER));
 		grid.setLocation(0, 0);
+		grid.setFocusable(true);
 		grid.setSize(grid_size+(sq_size*2), grid_size+(sq_size*2));
 		allGUI.add(grid);
 
