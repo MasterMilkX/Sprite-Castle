@@ -25,9 +25,11 @@ public class Game{
 	public static int sq_size = sprite_size*scale;
 	public static int grid_size = sq_size*map_size;
 	public static int btn_size = 36;
+	public static int max_tree_str = 6;
 
 	//map info
 	public static int[][] terrain_map = new int[map_size][map_size];
+	public static int[][] tree_strength = new int[map_size][map_size];
 	public static int[][] item_map = new int[map_size][map_size];
 	
 	//image
@@ -69,7 +71,7 @@ public class Game{
 		public int hammer = 0;
 		public int key = 0;
 		public int castles = 0;
-		public int enemies = 0;
+		public int enemyCt = 0;
 
 		public Player(){}
 		public Player(int x, int y){
@@ -88,10 +90,16 @@ public class Game{
 				return;
 
 			//System.out.println("Hey I'm walking here!");
-			if(collide(dir)){
+			if(atWorldsEnd(dir)){
 				System.out.println("ow");
 				return;
 			}
+			String cut = tree_chop(dir);
+
+			if(cut.equals("chop") || cut.equals("timber")){
+				return;
+			}
+
 			String nearCastle = hasKey(dir);
 			if(nearCastle.equals("enter")){
 				System.out.println("rescued!");
@@ -113,17 +121,47 @@ public class Game{
 			}
 			return;
 		}
-		public boolean collide(String dir){
-			if(dir.equals("north") && (this.y == 0 || terrain_map[y-1][x] != 0)){
+		public boolean atWorldsEnd(String dir){
+			if(dir.equals("north") && (this.y == 0)){
 				return true;
-			}else if(dir.equals("south") && (this.y == map_size-1 || terrain_map[y+1][x] != 0)){
+			}else if(dir.equals("south") && (this.y == map_size-1)){
 				return true;
-			}else if(dir.equals("west") && (this.x == 0 || terrain_map[y][x-1] != 0)){
+			}else if(dir.equals("west") && (this.x == 0)){
 				return true;
-			}else if(dir.equals("east") && (this.x == map_size-1 || terrain_map[y][x+1] != 0)){
+			}else if(dir.equals("east") && (this.x == map_size-1)){
 				return true;
 			}else{
 				return false;
+			}
+		}
+
+		public String tree_chop(String dir){
+			int alt_x = this.x;
+			int alt_y = this.y;
+
+			if(dir.equals("north")){
+				alt_y--;
+			}else if(dir.equals("south")){
+				alt_y++;
+			}else if(dir.equals("west")){
+				alt_x--;
+			}else if(dir.equals("east")){
+				alt_x++;
+			}
+
+			if(terrain_map[alt_y][alt_x] == 2){
+				if(tree_strength[alt_y][alt_x] > 1){
+					tree_strength[alt_y][alt_x]--;
+					return "chop";
+				}else if(tree_strength[alt_y][alt_x] == 1){
+					tree_strength[alt_y][alt_y] = 0;
+					terrain_map[alt_y][alt_x] = 0;
+					return "timber";
+				}else{
+					return "tread";
+				}
+			}else{
+				return "free";
 			}
 		}
 		public void randomPlace(){
@@ -132,10 +170,19 @@ public class Game{
 			do{
 				rx = (int)(Math.floor(Math.random() * map_size));
 				ry = (int)(Math.floor(Math.random() * map_size));
-			}while(terrain_map[ry][rx] != 0);
+			}while(terrain_map[ry][rx] != 0 || onEnemy(rx, ry));
 
 			this.x = rx;
 			this.y = ry;
+		}
+
+		public boolean onEnemy(int x, int y){
+			for(Enemy en : enemies){
+				if(x == en.x && y == en.y){
+					return true;
+				}
+			}
+			return false;
 		}
 
 		public void pickup(Item item){
@@ -305,7 +352,7 @@ public class Game{
 				//enemy dead
 				if(p1.hammer > 0){
 					p1.hammer--;
-					p1.enemies++;
+					p1.enemyCt++;
 					show = false;
 				}
 				//player dead
@@ -370,7 +417,7 @@ public class Game{
 			do{
 				rx = (int)(Math.floor(Math.random() * map_size));
 				ry = (int)(Math.floor(Math.random() * map_size));
-			}while(terrain_map[ry][rx] != 0);
+			}while(terrain_map[ry][rx] != 0 || item_map[ry][rx] != 0);
 
 			this.x = rx;
 			this.y = ry;
@@ -389,8 +436,9 @@ public class Game{
 			//clear map
 			for(int i=0;i<map_size;i++){
 				for(int j=0;j<map_size;j++){
-					terrain_map[j][i] = 0;
-					item_map[j][i] = 0;
+					terrain_map[i][j] = 0;
+					tree_strength[i][j] = 0;
+					item_map[i][j] = 0;
 				}
 			}
 
@@ -399,6 +447,15 @@ public class Game{
 				addNature(5, 1, 0.25, 0.01);               //water
 			if(addTrees)
 				addNature(4, 2, 0.20, 0.025);              //tree
+
+			//add tree strengths
+			for(int i=0;i<map_size;i++){
+				for(int j=0;j<map_size;j++){
+					if(terrain_map[i][j] == 2){
+						tree_strength[i][j] = (int)(Math.floor(Math.random() * max_tree_str) + 1);
+					}
+				}
+			}
 
 			//guarentee key
 			items.add(new Item("key"));
@@ -439,8 +496,9 @@ public class Game{
 			//clear map
 			for(int i=0;i<map_size;i++){
 				for(int j=0;j<map_size;j++){
-					terrain_map[j][i] = 0;
-					item_map[j][i] = 0;
+					terrain_map[i][j] = 0;
+					item_map[i][j] = 0;
+					tree_strength[i][j] = 0;
 				}
 			}
 
@@ -461,6 +519,15 @@ public class Game{
 				addNature(5, 1, 0.25, 0.01);               //water
 			if(addTrees)
 				addNature(4, 2, 0.20 + inc, 0.025);              //tree
+
+			//add tree strengths
+			for(int i=0;i<map_size;i++){
+				for(int j=0;j<map_size;j++){
+					if(terrain_map[i][j] == 2){
+						tree_strength[i][j] = (int)(Math.floor(Math.random() * max_tree_str) + 1);
+					}
+				}
+			}
 
 			//guarentee key
 			items.add(new Item("key"));
@@ -704,7 +771,7 @@ public class Game{
 			castlesLbl = new JLabel("Castles: " + p1.castles);
 			set_labels.add(castlesLbl);
 
-			enemiesLbl = new JLabel("Enemies: " + p1.enemies);
+			enemiesLbl = new JLabel("Enemies: " + p1.enemyCt);
 			set_labels.add(enemiesLbl);
 
 			for(JLabel lbl : set_labels){
@@ -727,7 +794,7 @@ public class Game{
 			hammerLbl.setText("Hammers: " + p1.hammer);
 			keysLbl.setText("Keys: " + p1.key);
 			castlesLbl.setText("Castles: " + p1.castles);
-			enemiesLbl.setText("Enemies: " + p1.enemies);
+			enemiesLbl.setText("Enemies: " + p1.enemyCt);
 		}
 
 	}
