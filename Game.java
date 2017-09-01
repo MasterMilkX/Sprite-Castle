@@ -14,7 +14,7 @@ public class Game{
 	//properties
 	public static boolean showGrid = true;
 	public static boolean addTrees = true;
-	public static boolean addWater = false;
+	public static boolean addWater = true;
 	public static boolean game_over = false;
 	public static String game_mode = "HARD";
 
@@ -26,6 +26,8 @@ public class Game{
 	public static int grid_size = sq_size*map_size;
 	public static int btn_size = 36;
 	public static int max_tree_str = 6;
+	public static int max_bridge = 7;
+
 
 	//map info
 	public static int[][] terrain_map = new int[map_size][map_size];
@@ -40,6 +42,7 @@ public class Game{
 	static Image hammer_img;
 	static Image key_img;
 	static Image tree;
+	static Image log;
 	static Image yeet;
 
 	//player info
@@ -72,6 +75,7 @@ public class Game{
 		public int key = 0;
 		public int castles = 0;
 		public int enemyCt = 0;
+		public int timber = 0;
 
 		public Player(){}
 		public Player(int x, int y){
@@ -90,16 +94,27 @@ public class Game{
 				return;
 
 			//System.out.println("Hey I'm walking here!");
+			//hit a wall
 			if(atWorldsEnd(dir)){
 				System.out.println("ow");
 				return;
 			}
-			String cut = tree_chop(dir);
 
-			if(cut.equals("chop") || cut.equals("timber")){
+			//chop down a tree
+			String cut = tree_chop(dir);
+			if(cut.equals("chop")){
+				return;
+			}else if(cut.equals("timber")){
+				timber++;
 				return;
 			}
 
+			//swim or sink
+			boolean sos = sink_swim(dir);
+			if(sos)
+				return;
+
+			//hit the castle
 			String nearCastle = hasKey(dir);
 			if(nearCastle.equals("enter")){
 				System.out.println("rescued!");
@@ -119,6 +134,12 @@ public class Game{
 				case "east": this.x++;break;
 				default: break;
 			}
+
+			if(terrain_map[this.y][this.x] == 1){
+				game_over = true;
+				this.show = false;
+			}
+
 			return;
 		}
 		public boolean atWorldsEnd(String dir){
@@ -164,6 +185,29 @@ public class Game{
 				return "free";
 			}
 		}
+		public boolean sink_swim(String dir){
+			int alt_x = this.x;
+			int alt_y = this.y;
+
+			if(dir.equals("north")){
+				alt_y--;
+			}else if(dir.equals("south")){
+				alt_y++;
+			}else if(dir.equals("west")){
+				alt_x--;
+			}else if(dir.equals("east")){
+				alt_x++;
+			}
+
+			if(this.timber > 0 && terrain_map[alt_y][alt_x] == 1){
+				timber--;
+				terrain_map[alt_y][alt_x] = 5;
+				return true;
+			}else{
+				return false;
+			}
+		}
+
 		public void randomPlace(){
 			int rx;
 			int ry;
@@ -443,8 +487,14 @@ public class Game{
 			}
 
 			//water and trees
-			if(addWater)
+			if(addWater){
 				addNature(5, 1, 0.25, 0.01);               //water
+				int bridges = (int)(Math.random()*max_bridge);
+				//System.out.println(bridges + " bridges");
+				for(int b=0;b<bridges;b++){	//bridges
+					bridge();
+				}
+			}
 			if(addTrees)
 				addNature(4, 2, 0.20, 0.025);              //tree
 
@@ -480,6 +530,8 @@ public class Game{
 			//scene stuff
 			setVisible(true);
 			addKeyListener(this);
+
+			//debugOut();
 		}
 
 		public void resetMap(){
@@ -515,8 +567,13 @@ public class Game{
 				}
 			}
 
-			if(addWater)
+
+			if(addWater){
 				addNature(5, 1, 0.25, 0.01);               //water
+				for(int b=0;b<(int)(Math.random()*max_bridge);b++){	//bridges
+					bridge();
+				}
+			}
 			if(addTrees)
 				addNature(4, 2, 0.20 + inc, 0.025);              //tree
 
@@ -534,7 +591,7 @@ public class Game{
 
 			//make objects
 			for(int e=0;e<Math.round(Math.random()*max_items);e++){
-				String item = (Math.random() < 0.5 ? "hammer" : "key");
+				String item = (Math.random() < 0.7 ? "hammer" : "key");
 				Item n_item = new Item(item);
 				items.add(n_item);
 				item_map[n_item.y][n_item.x] = 1;
@@ -549,19 +606,22 @@ public class Game{
 			p1.randomPlace();
 			castle.randomPlace();
 
+			//debugOut();
+
 		}
 
 		//images
 		public void getIMG(){
 			try{
 				bipi = ImageIO.read(new File("assets/bipi.png")).getScaledInstance(sq_size, sq_size, Image.SCALE_DEFAULT);
-				bridge_h = ImageIO.read(new File("assets/bridge_h.png")).getScaledInstance(sq_size, sq_size, Image.SCALE_DEFAULT);;
-				bridge_v = ImageIO.read(new File("assets/bridge_v.png")).getScaledInstance(sq_size, sq_size, Image.SCALE_DEFAULT);;
-				castle_img = ImageIO.read(new File("assets/castle.png")).getScaledInstance(sq_size, sq_size, Image.SCALE_DEFAULT);;
-				hammer_img = ImageIO.read(new File("assets/hammer.png")).getScaledInstance(sq_size, sq_size, Image.SCALE_DEFAULT);;
-				key_img = ImageIO.read(new File("assets/key.png")).getScaledInstance(sq_size, sq_size, Image.SCALE_DEFAULT);;
-				tree = ImageIO.read(new File("assets/tree.png")).getScaledInstance(sq_size, sq_size, Image.SCALE_DEFAULT);;
-				yeet = ImageIO.read(new File("assets/yeet.png")).getScaledInstance(sq_size, sq_size, Image.SCALE_DEFAULT);;
+				bridge_h = ImageIO.read(new File("assets/bridge_h.png")).getScaledInstance(sq_size, sq_size, Image.SCALE_DEFAULT);
+				bridge_v = ImageIO.read(new File("assets/bridge_v.png")).getScaledInstance(sq_size, sq_size, Image.SCALE_DEFAULT);
+				castle_img = ImageIO.read(new File("assets/castle.png")).getScaledInstance(sq_size, sq_size, Image.SCALE_DEFAULT);
+				hammer_img = ImageIO.read(new File("assets/hammer.png")).getScaledInstance(sq_size, sq_size, Image.SCALE_DEFAULT);
+				key_img = ImageIO.read(new File("assets/key.png")).getScaledInstance(sq_size, sq_size, Image.SCALE_DEFAULT);
+				tree = ImageIO.read(new File("assets/tree.png")).getScaledInstance(sq_size, sq_size, Image.SCALE_DEFAULT);
+				log = ImageIO.read(new File("assets/log.png")).getScaledInstance(sq_size, sq_size, Image.SCALE_DEFAULT);
+				yeet = ImageIO.read(new File("assets/yeet.png")).getScaledInstance(sq_size, sq_size, Image.SCALE_DEFAULT);
 			}catch(IOException e){}
 		}
 
@@ -599,7 +659,13 @@ public class Game{
 					//tree
 					else if(tm == 2){
 						g.drawImage(tree, cellX, cellY, null);
-					}		
+					}else if(tm == 3){
+						g.drawImage(bridge_h, cellX, cellY, null);
+					}else if(tm == 4){
+						g.drawImage(bridge_v, cellX, cellY, null);
+					}else if(tm == 5){
+						g.drawImage(log, cellX, cellY, null);
+					}
 				}
 			}
 
@@ -694,6 +760,69 @@ public class Game{
 			terrain_map[y][x] = obj;
 		}
 
+		public boolean foundWater(){
+			for(int w=0;w<map_size;w++){
+				for(int w2=0;w2<map_size;w2++){
+					if(terrain_map[w][w2] == 1){
+						return true;
+					}
+				}			
+			}
+			return false;
+		}
+		public boolean oob(int cell){
+			return (cell < 0 || cell >= map_size);
+		}
+
+		//make bridge segments
+		public void bridge(){
+			//check if there is water
+			if(!foundWater())
+				return;
+
+			//set the bridge direction
+			String orientation = (Math.random() < 0.5 ? "hor" : "ver");
+
+			//pick a random spot in the water
+			int rx;
+			int ry;
+			do{
+				rx = (int)(Math.floor(Math.random() * map_size));
+				ry = (int)(Math.floor(Math.random() * map_size));
+			}while(terrain_map[ry][rx] != 1);
+
+			//System.out.println(rx + " " + ry);
+
+			//go in both directions
+			int rx2 = rx;
+			int ry2 = ry;
+			while((!oob(rx2) && !oob(ry2)) && terrain_map[ry2][rx2] == 1){
+				//System.out.print('+');
+				if(orientation.equals("hor")){
+					terrain_map[ry2][rx2] = 3;
+					rx2++;
+				}else{
+					terrain_map[ry2][rx2] = 4;
+					ry2++;
+				}
+			}
+			rx2 = rx;
+			ry2 = ry;
+			do{
+				//System.out.print('~');
+				if(orientation.equals("hor")){
+					terrain_map[ry2][rx2] = 3;
+					rx2--;
+				}else{
+					terrain_map[ry2][rx2] = 4;
+					ry2--;
+				}
+				
+			}while((!oob(rx2) && !oob(ry2)) && terrain_map[ry2][rx2] == 1);
+			return;
+
+		}
+
 
 		//key movement
 		@Override
@@ -747,12 +876,21 @@ public class Game{
 		}
 
 		
+		public void debugOut(){
+			//add tree strengths
+			for(int i=0;i<map_size;i++){
+				for(int j=0;j<map_size;j++){
+					System.out.print(terrain_map[i][j] + " ");
+				}
+				System.out.println();
+			}
+		}
 
 	}
 
 	public static class Settings extends JPanel{
 		//private JCheckBox waterCheck, treesCheck, enemiesCheck;
-		private JLabel hammerLbl, keysLbl, castlesLbl, enemiesLbl;
+		private JLabel hammerLbl, keysLbl, castlesLbl, enemiesLbl, timberLbl;
 
 		public Settings(){
 			Border bord = BorderFactory.createLineBorder(Color.black);
@@ -773,6 +911,9 @@ public class Game{
 
 			enemiesLbl = new JLabel("Enemies: " + p1.enemyCt);
 			set_labels.add(enemiesLbl);
+
+			timberLbl = new JLabel("Timber: " + p1.timber);
+			set_labels.add(timberLbl);
 
 			for(JLabel lbl : set_labels){
 				lbl.setFont(new Font("Consolas", Font.BOLD, 12));
@@ -795,6 +936,7 @@ public class Game{
 			keysLbl.setText("Keys: " + p1.key);
 			castlesLbl.setText("Castles: " + p1.castles);
 			enemiesLbl.setText("Enemies: " + p1.enemyCt);
+			timberLbl.setText("Timber: " + p1.timber);
 		}
 
 	}
