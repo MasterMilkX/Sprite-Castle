@@ -4,12 +4,11 @@ import java.util.*;
 import javax.swing.*;
 import javax.swing.border.*;
 
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
 import javax.imageio.ImageIO;
 import java.util.List;
 
-public class Game{
+public class Game implements ActionListener{
 
 	//properties
 	public static boolean showGrid = true;
@@ -27,7 +26,8 @@ public class Game{
 	public static int btn_size = 36;
 	public static int max_tree_str = 6;
 	public static int max_bridge = 7;
-
+	public static int max_score = 7;
+	public static int max_inventory = 20;
 
 	//map info
 	public static int[][] terrain_map = new int[map_size][map_size];
@@ -64,6 +64,7 @@ public class Game{
 	public static GridMap grid = new GridMap();
 	public static User_Input input = new User_Input();
 	public static Settings game_info = new Settings();
+	public static String[] h_scores = new String[max_score];
 
 	//Player class definition
 	public static class Player{
@@ -100,12 +101,17 @@ public class Game{
 				return;
 			}
 
+			//check maximum
+			int tot = (this.hammer+this.key+this.timber);
+
 			//chop down a tree
 			String cut = tree_chop(dir);
 			if(cut.equals("chop")){
 				return;
 			}else if(cut.equals("timber")){
-				timber++;
+				if(tot < max_inventory)
+					timber++;
+				System.out.println("timber!");
 				return;
 			}
 
@@ -138,6 +144,8 @@ public class Game{
 			if(terrain_map[this.y][this.x] == 1){
 				game_over = true;
 				this.show = false;
+				good_game();
+				System.out.println("you drownded");
 			}
 
 			return;
@@ -222,7 +230,7 @@ public class Game{
 
 		public boolean onEnemy(int x, int y){
 			for(Enemy en : enemies){
-				if(x == en.x && y == en.y){
+				if((x == en.x) && (y == en.y)){
 					return true;
 				}
 			}
@@ -230,7 +238,9 @@ public class Game{
 		}
 
 		public void pickup(Item item){
-			if(item.show){
+			int tot = (this.hammer+this.key+this.timber);
+
+			if(item.show && tot < max_inventory){
 				if(item.name.equals("hammer")){
 					this.hammer++;
 					System.out.println("hammer time");
@@ -403,6 +413,8 @@ public class Game{
 				else{
 					p1.show = false;
 					game_over = true;
+					good_game();
+					System.out.println("et tu brute?");
 				}
 			}
 			return;
@@ -535,9 +547,9 @@ public class Game{
 		}
 
 		public void resetMap(){
+			items.clear();
 			if(game_mode.equals("EASY") || game_mode.equals("NORMAL")){
 				enemies.clear();
-				items.clear();
 			}else{
 				for(Enemy e : enemies){
 					e.randomPlace();
@@ -717,8 +729,6 @@ public class Game{
 					g.drawLine(sq_size, i, grid_size + sq_size, i);
 				}
 			}
-
-
 
 
 		}
@@ -1060,6 +1070,142 @@ public class Game{
 
 	}
 
+	private JMenuBar menuBar;
+	private JMenu game_menu, option_menu, help_menu;
+	private JMenuItem new_game, high_score, game_mode_menu;
+	private JRadioButtonMenuItem hard_mode_radio, med_mode_radio, easy_mode_radio;
+	private ButtonGroup group;
+
+
+	public JFrame highScoreWindow(){
+
+		JFrame highScoreScreen = new JFrame("High Score");
+		highScoreScreen.setLocation(200,50);
+		highScoreScreen.setSize(200, 400);
+		highScoreScreen.setVisible(true);
+		highScoreScreen.setDefaultCloseOperation(JFrame.HIDE_ON_CLOSE);
+
+		JPanel scorePanel = new JPanel();
+		scorePanel.setLayout(new FlowLayout(FlowLayout.CENTER, 25, 20));
+		
+
+		Border bord = BorderFactory.createLineBorder(Color.black);
+		//setBorder(bord);
+		//scorePanel.setLayout(new BoxLayout(scorePanel, BoxLayout.Y_AXIS));
+		
+		JLabel title = new JLabel("HIGH SCORES");
+		title.setFont(new Font("Consolas", Font.BOLD, 24));
+		title.setAlignmentX(Component.CENTER_ALIGNMENT);
+		scorePanel.add(title);
+
+
+		List<JLabel> score_labels = new ArrayList<JLabel>();
+
+		for(int s=0;s<h_scores.length;s++){
+			JLabel score_slot = new JLabel(h_scores[s]);
+			//System.out.println(h_scores[s]);
+			score_slot.setFont(new Font("Consolas", Font.PLAIN, 18));
+			score_slot.setAlignmentX(Component.CENTER_ALIGNMENT);
+			score_labels.add(score_slot);
+			scorePanel.add(score_slot);
+		}
+
+		/*
+		JLabel test_label = new JLabel("This is a test");
+		test_label.setFont(new Font("Consolas", Font.BOLD, 24));
+		scorePanel.add(test_label);
+		*/
+
+		highScoreScreen.setContentPane(scorePanel);
+		return highScoreScreen;
+	}
+
+	public static void good_game(){
+		if(game_over){
+			String myName = JOptionPane.showInputDialog("Enter your name:");
+			int scoreVal = p1.castles;
+			String myScore = scoreVal + " " + myName;
+			updateScores(myScore);
+			//System.out.println(myScore);
+		}
+	}
+
+	public void readScores(){
+		String[] scoreSet = new String[max_score];
+
+		//Import dat file
+		File file = new File("scores.txt");
+		try{
+			Scanner in = new Scanner(file);
+			int a = 0;
+			while(in.hasNextLine() && a<max_score){
+				String w = in.nextLine();
+				scoreSet[a] = w;
+				a++;
+			}
+			in.close();
+		}catch(IOException e){
+			e.printStackTrace();
+		}
+
+		h_scores = scoreSet;
+		return;
+	}
+
+	public void writeScores(){
+		try {
+			File file = new File("scores.txt");
+
+			//initialize variables for writing
+			FileWriter fw = new FileWriter(file, false);
+			BufferedWriter bw = new BufferedWriter(fw);
+
+			for(String score : h_scores){
+				bw.write(score);
+				bw.newLine();
+			}
+			bw.close();
+
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+
+	public static void updateScores(String new_score){
+		//get the parts of the input score
+		String[] parts = new_score.split(" ");
+		int val = Integer.parseInt(parts[0]);
+		String name = parts[1];
+
+		//go through each score to find the insertion value
+		boolean scoreFound = false;
+		int scoreIndex = 0;
+		for(int s=0;s<h_scores.length;s++){
+			String score = h_scores[s];
+
+			//break up the current score into parts
+			String[] parts2 = score.split(" ");
+			int val2 = Integer.parseInt(parts2[0]);
+			String name2 = parts2[1];
+
+			//check if my score is higher than this score
+			if(val > val2){
+				scoreFound = true;
+				scoreIndex = s;
+				break;
+			}
+		}
+
+		//insert the new score if found
+		if(scoreFound){
+			ArrayList<String> list_scores = new ArrayList<String>(Arrays.asList(h_scores));
+			list_scores.add(scoreIndex, new_score);
+			for(int t=0;t<max_score;t++){
+				h_scores[t] = list_scores.get(t);
+			}
+		}
+	}
+
 	//put it all together in the window
 	public JPanel contentScreen(){
 		JPanel allGUI = new JPanel();
@@ -1072,7 +1218,6 @@ public class Game{
 		allGUI.add(grid);
 
 		//System.out.println("Player: " + p1.x + ", " + p1.y);
-
 		int in_size = (int)(grid_size*(2.0/5.0));
 		game_info.setLocation(grid_size+(sq_size*2)+(sq_size), sq_size);
 		game_info.setSize(in_size, in_size);
@@ -1083,29 +1228,121 @@ public class Game{
 		input.setSize(in_size, in_size);
 		allGUI.add(input);		
 
+		//set up the menu
+		menuBar = new JMenuBar();
+
+		game_menu = new JMenu("Game");
+		new_game = new JMenuItem("New Game");
+		new_game.addActionListener(this);
+		game_menu.add(new_game);
+		high_score = new JMenuItem("High Score");
+		high_score.addActionListener(this);
+		game_menu.add(high_score);
+		menuBar.add(game_menu);
+
+		option_menu = new JMenu("Options");
+		game_mode_menu = new JMenuItem("Game Mode");
+		game_mode_menu.addActionListener(this);
+		option_menu.add(game_mode_menu);
+		menuBar.add(option_menu);
+
+		//game modes
+		//make the radio button options
+		//game_mode_menu.addSeparator();
+		group = new ButtonGroup();
+
+		easy_mode_radio = new JRadioButtonMenuItem("Easy Mode");
+			easy_mode_radio.setActionCommand("easy");
+			easy_mode_radio.addActionListener(this);
+			group.add(easy_mode_radio);
+			game_mode_menu.add(easy_mode_radio);
+		med_mode_radio = new JRadioButtonMenuItem("Medium Mode");
+			med_mode_radio.setActionCommand("medium");
+			med_mode_radio.addActionListener(this);
+			group.add(med_mode_radio);
+			game_mode_menu.add(med_mode_radio);
+		hard_mode_radio = new JRadioButtonMenuItem("Hard Mode");
+			hard_mode_radio.setSelected(true);
+			hard_mode_radio.setActionCommand("hard");
+			hard_mode_radio.addActionListener(this);
+			group.add(hard_mode_radio);
+			game_mode_menu.add(hard_mode_radio);
+
+
+		help_menu = new JMenu("Help");
+		help_menu.addActionListener(this);
+		menuBar.add(help_menu);
+
+		window.setJMenuBar(menuBar);
+
+		//make the high score screen
+
+		//add everything
 		allGUI.setOpaque(true);
 		return allGUI;
 
 	}
 
+	public void actionPerformed(ActionEvent e){
+		if(e.getSource() == new_game){
+			reset_game();
+		}
+		//open tips screen
+		else if(e.getSource() == high_score){
+			//put a high score screen here
+			JFrame hsw = highScoreWindow();
+			hsw.setVisible(true);
+			//System.out.println(h_scores.length);
+		}
+		//mode
+		else if(e.getSource() == easy_mode_radio){
+			game_mode = "EASY";
+			reset_game();
+		}else if(e.getSource() == med_mode_radio){
+			game_mode = "MED";
+			reset_game();
+		}else if(e.getSource() == hard_mode_radio){
+			game_mode = "EASY";
+			reset_game();
+		}
+	}
+
+	public void reset_game(){
+		game_over = false;
+		p1.show = true;
+		p1.castles = 0;
+		p1.enemyCt = 0;
+		p1.key = 0;
+		p1.hammer = 0;
+		p1.timber = 0;
+		enemies = new ArrayList<Enemy>();
+		items = new ArrayList<Item>();
+		grid.resetMap();
+		grid.repaint();
+	}
+
 	public void createAndShowGUI(){
 		//set up the frame properties
-		window.setSize((grid_size + sq_size*2) + (grid_size/2), grid_size + 30 + (sq_size*2));
+		window.setSize((grid_size + sq_size*2) + (grid_size/2), grid_size + 50 + (sq_size*2));
 		window.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		window.setContentPane(contentScreen());
 		window.setLocation(200, 75);
 		window.setVisible(true);
+
 	}
 
 	public static void main(String[] args){
 
 		Game game = new Game();
+		game.readScores();
 
 		SwingUtilities.invokeLater(new Runnable(){
 			public void run(){
 				game.createAndShowGUI();
 			}
 		});
+
+
 
 	}
 }

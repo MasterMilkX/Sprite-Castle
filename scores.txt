@@ -1,0 +1,7 @@
+1 Player A
+1 Player B
+1 PLayer C
+1 Player D
+0 Player E
+0 Player F
+0 Player G
