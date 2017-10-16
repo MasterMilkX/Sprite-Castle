@@ -26,7 +26,7 @@ public class Game implements ActionListener{
 	public static int btn_size = 36;
 	public static int max_tree_str = 6;
 	public static int max_bridge = 7;
-	public static int max_score = 7;
+	public static int max_score = 10;
 	public static int max_inventory = 20;
 
 	//map info
@@ -62,7 +62,7 @@ public class Game implements ActionListener{
 	//frames and panels
 	public static JFrame window = new JFrame("Sprite Castle - by Milk");
 	public static GridMap grid = new GridMap();
-	public static User_Input input = new User_Input();
+	//public static User_Input input = new User_Input();
 	public static Settings game_info = new Settings();
 	public static String[] h_scores = new String[max_score];
 
@@ -102,7 +102,7 @@ public class Game implements ActionListener{
 			}
 
 			//check maximum
-			int tot = (this.hammer+this.key+this.timber);
+			int tot = (this.hammer+this.timber);
 
 			//chop down a tree
 			String cut = tree_chop(dir);
@@ -238,7 +238,7 @@ public class Game implements ActionListener{
 		}
 
 		public void pickup(Item item){
-			int tot = (this.hammer+this.key+this.timber);
+			int tot = (this.hammer+this.timber);
 
 			if(item.show && tot < max_inventory){
 				if(item.name.equals("hammer")){
@@ -489,6 +489,14 @@ public class Game implements ActionListener{
 		public GridMap(){
 			getIMG();
 
+			if(game_mode.equals("EASY") || game_mode.equals("MEDIUM")){
+				enemies.clear();
+			}else{
+				for(Enemy e : enemies){
+					e.randomPlace();
+				}
+			}
+
 			//clear map
 			for(int i=0;i<map_size;i++){
 				for(int j=0;j<map_size;j++){
@@ -514,7 +522,7 @@ public class Game implements ActionListener{
 			for(int i=0;i<map_size;i++){
 				for(int j=0;j<map_size;j++){
 					if(terrain_map[i][j] == 2){
-						tree_strength[i][j] = (int)(Math.floor(Math.random() * max_tree_str) + 1);
+						tree_strength[i][j] = (int)(Math.floor(Math.random() * max_tree_str))+1;
 					}
 				}
 			}
@@ -532,7 +540,8 @@ public class Game implements ActionListener{
 
 			//make enemies
 			for(int e=0;e<Math.round(Math.random()*max_enemy);e++){
-				enemies.add(new Enemy());
+				if(game_mode.equals("MEDIUM") || game_mode.equals("HARD"))
+					enemies.add(new Enemy());
 			}
 
 			//set the castle and player
@@ -548,7 +557,7 @@ public class Game implements ActionListener{
 
 		public void resetMap(){
 			items.clear();
-			if(game_mode.equals("EASY") || game_mode.equals("NORMAL")){
+			if(game_mode.equals("EASY") || game_mode.equals("MEDIUM")){
 				enemies.clear();
 			}else{
 				for(Enemy e : enemies){
@@ -568,7 +577,7 @@ public class Game implements ActionListener{
 
 			//water and trees
 			double inc = 0;
-			if(game_mode.equals("HARD")){
+			//if(game_mode.equals("HARD")){
 				if(p1.castles < 20){
 					inc = p1.castles*0.005;
 				}
@@ -577,17 +586,17 @@ public class Game implements ActionListener{
 				}else{
 					inc = 0.45;
 				}
-			}
+			//}
 
 
 			if(addWater){
-				addNature(5, 1, 0.25, 0.01);               //water
+				addNature(5, 1, 0.25 + inc, 0.01);               //water
 				for(int b=0;b<(int)(Math.random()*max_bridge);b++){	//bridges
 					bridge();
 				}
 			}
 			if(addTrees)
-				addNature(4, 2, 0.20 + inc, 0.025);              //tree
+				addNature(4, 2, 0.25, 0.025);              //tree
 
 			//add tree strengths
 			for(int i=0;i<map_size;i++){
@@ -603,7 +612,11 @@ public class Game implements ActionListener{
 
 			//make objects
 			for(int e=0;e<Math.round(Math.random()*max_items);e++){
-				String item = (Math.random() < 0.7 ? "hammer" : "key");
+				String item;
+				if(game_mode.equals("EASY"))
+					item = "key";
+				else
+					item = (Math.random() < 0.7 ? "hammer" : "key");
 				Item n_item = new Item(item);
 				items.add(n_item);
 				item_map[n_item.y][n_item.x] = 1;
@@ -611,7 +624,8 @@ public class Game implements ActionListener{
 
 			//make enemies
 			for(int e=0;e<Math.round(Math.random()*max_enemy);e++){
-				enemies.add(new Enemy());
+				if(game_mode.equals("MEDIUM") || game_mode.equals("HARD"))
+					enemies.add(new Enemy());
 			}
 
 			//set the castle and player
@@ -851,9 +865,12 @@ public class Game implements ActionListener{
 				}
 
 				//enemy movement
-				for(Enemy en : enemies){
-					en.walk();
+				if(code == 40 || code == 38 || code == 37 || code == 39){
+					for(Enemy en : enemies){
+						en.walk();
+					}
 				}
+				
 
 				//check for overlaps
 				for(Item item : items){
@@ -956,6 +973,7 @@ public class Game implements ActionListener{
 		private GridLayout arrowLayout = new GridLayout(3, 3);
 
 		public User_Input(){
+
 			Border bord = BorderFactory.createLineBorder(Color.black);
 			setBorder(bord);
 			this.setLayout(arrowLayout);
@@ -1047,6 +1065,8 @@ public class Game implements ActionListener{
 			add(downBtn);
 			add(fakeBtn5);
 
+			
+
 		}
 
 		//do the thing
@@ -1071,8 +1091,8 @@ public class Game implements ActionListener{
 	}
 
 	private JMenuBar menuBar;
-	private JMenu game_menu, option_menu, help_menu;
-	private JMenuItem new_game, high_score, game_mode_menu;
+	private JMenu game_menu, game_mode_menu;
+	private JMenuItem new_game, high_score, help_menu;
 	private JRadioButtonMenuItem hard_mode_radio, med_mode_radio, easy_mode_radio;
 	private ButtonGroup group;
 
@@ -1086,10 +1106,8 @@ public class Game implements ActionListener{
 		highScoreScreen.setDefaultCloseOperation(JFrame.HIDE_ON_CLOSE);
 
 		JPanel scorePanel = new JPanel();
-		scorePanel.setLayout(new FlowLayout(FlowLayout.CENTER, 25, 20));
+		scorePanel.setLayout(new BoxLayout(scorePanel, BoxLayout.Y_AXIS));
 		
-
-		Border bord = BorderFactory.createLineBorder(Color.black);
 		//setBorder(bord);
 		//scorePanel.setLayout(new BoxLayout(scorePanel, BoxLayout.Y_AXIS));
 		
@@ -1120,11 +1138,25 @@ public class Game implements ActionListener{
 		return highScoreScreen;
 	}
 
+	public JFrame helpWindow(){
+		JFrame helpWindow = new JFrame("Help");
+		helpWindow.setLocation(200, 50);
+		helpWindow.setSize(300, 340);
+		helpWindow.setVisible(true);
+		helpWindow.setDefaultCloseOperation(JFrame.HIDE_ON_CLOSE);
+
+		JLabel helpStuff = new JLabel(new ImageIcon("assets/help.png"));
+		helpWindow.add(helpStuff);
+		return helpWindow;
+
+	}
+
 	public static void good_game(){
 		if(game_over){
-			String myName = JOptionPane.showInputDialog("Enter your name:");
+			String myName = JOptionPane.showInputDialog("Enter your name:", "Player");
 			int scoreVal = p1.castles;
-			String myScore = scoreVal + " " + myName;
+			char abbrev = Character.toUpperCase(game_mode.charAt(0));
+			String myScore = scoreVal + " " + myName + "(" + abbrev + ")";
 			updateScores(myScore);
 			//System.out.println(myScore);
 		}
@@ -1140,9 +1172,20 @@ public class Game implements ActionListener{
 			int a = 0;
 			while(in.hasNextLine() && a<max_score){
 				String w = in.nextLine();
+				String gmode = "(" + Character.toUpperCase(game_mode.charAt(0)) + ")";
+				if(w.contains(gmode)){
+					scoreSet[a] = w;
+					a++;
+				}		
+			}
+
+			//in case there's not enough scores
+			while(a<max_score){
+				String w = "0 ---";
 				scoreSet[a] = w;
 				a++;
 			}
+
 			in.close();
 		}catch(IOException e){
 			e.printStackTrace();
@@ -1152,7 +1195,7 @@ public class Game implements ActionListener{
 		return;
 	}
 
-	public void writeScores(){
+	public static void writeScores(){
 		try {
 			File file = new File("scores.txt");
 
@@ -1183,6 +1226,8 @@ public class Game implements ActionListener{
 		for(int s=0;s<h_scores.length;s++){
 			String score = h_scores[s];
 
+			System.out.println(score);
+
 			//break up the current score into parts
 			String[] parts2 = score.split(" ");
 			int val2 = Integer.parseInt(parts2[0]);
@@ -1203,6 +1248,7 @@ public class Game implements ActionListener{
 			for(int t=0;t<max_score;t++){
 				h_scores[t] = list_scores.get(t);
 			}
+			writeScores();
 		}
 	}
 
@@ -1224,9 +1270,9 @@ public class Game implements ActionListener{
 		allGUI.add(game_info);
 
 		//input.setLayout(new FlowLayout(FlowLayout.CENTER));
-		input.setLocation(grid_size+(sq_size*2)+(sq_size), sq_size+in_size);
-		input.setSize(in_size, in_size);
-		allGUI.add(input);		
+		//input.setLocation(grid_size+(sq_size*2)+(sq_size), sq_size+in_size);
+		//input.setSize(in_size, in_size);
+		//allGUI.add(input);		
 
 		//set up the menu
 		menuBar = new JMenuBar();
@@ -1234,21 +1280,24 @@ public class Game implements ActionListener{
 		game_menu = new JMenu("Game");
 		new_game = new JMenuItem("New Game");
 		new_game.addActionListener(this);
+		new_game.setMnemonic(KeyEvent.VK_N);
 		game_menu.add(new_game);
 		high_score = new JMenuItem("High Score");
 		high_score.addActionListener(this);
+		high_score.setMnemonic(KeyEvent.VK_H);
 		game_menu.add(high_score);
 		menuBar.add(game_menu);
 
-		option_menu = new JMenu("Options");
-		game_mode_menu = new JMenuItem("Game Mode");
+		//option_menu = new JMenu("Options");
+		game_mode_menu = new JMenu("Game Mode");
 		game_mode_menu.addActionListener(this);
-		option_menu.add(game_mode_menu);
-		menuBar.add(option_menu);
+		game_mode_menu.setMnemonic(KeyEvent.VK_G);
+		//option_menu.add(game_mode_menu);
+		menuBar.add(game_mode_menu);
 
 		//game modes
 		//make the radio button options
-		//game_mode_menu.addSeparator();
+		game_mode_menu.addSeparator();
 		group = new ButtonGroup();
 
 		easy_mode_radio = new JRadioButtonMenuItem("Easy Mode");
@@ -1269,8 +1318,9 @@ public class Game implements ActionListener{
 			game_mode_menu.add(hard_mode_radio);
 
 
-		help_menu = new JMenu("Help");
+		help_menu = new JMenuItem("Help");
 		help_menu.addActionListener(this);
+		help_menu.setMnemonic(KeyEvent.VK_F1);
 		menuBar.add(help_menu);
 
 		window.setJMenuBar(menuBar);
@@ -1293,17 +1343,23 @@ public class Game implements ActionListener{
 			JFrame hsw = highScoreWindow();
 			hsw.setVisible(true);
 			//System.out.println(h_scores.length);
+		}else if(e.getSource() == help_menu){
+			JFrame hs = helpWindow();
+			hs.setVisible(true);
 		}
 		//mode
 		else if(e.getSource() == easy_mode_radio){
 			game_mode = "EASY";
 			reset_game();
+			readScores();
 		}else if(e.getSource() == med_mode_radio){
-			game_mode = "MED";
+			game_mode = "MEDIUM";
 			reset_game();
+			readScores();
 		}else if(e.getSource() == hard_mode_radio){
-			game_mode = "EASY";
+			game_mode = "HARD";
 			reset_game();
+			readScores();
 		}
 	}
 
@@ -1335,6 +1391,8 @@ public class Game implements ActionListener{
 
 		Game game = new Game();
 		game.readScores();
+
+		System.out.println(h_scores[0]);
 
 		SwingUtilities.invokeLater(new Runnable(){
 			public void run(){
